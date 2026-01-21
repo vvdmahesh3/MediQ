@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+.centered-container {
+  @apply min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-emerald-50;
+}
+
+.glass-card {
+  @apply bg-white/80 backdrop-blur-md rounded-xl p-6 shadow border;
+}
+
+.btn-primary {
+  @apply px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition;
+}
+
+.btn-secondary {
+  @apply px-6 py-2 border rounded-lg hover:bg-slate-100 transition;
+}
+
+.scale-hover:hover {
+  transform: scale(1.05);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  transition: 0.3s;
+}
+
+.gradient-text {
+  background: linear-gradient(to right, #2563eb, #10b981);
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.animate-pulse-soft {
+  animation: pulseSoft 2s infinite;
+}
+
+@keyframes pulseSoft {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-bar div {
+  height: 100%;
+  background: linear-gradient(to right, #2563eb, #10b981);
+  transition: width 0.3s;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+@keyframes pulseSoft {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+.animate-pulse-soft {
+  animation: pulseSoft 2s infinite;
+}

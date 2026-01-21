@@ -1,0 +1,14 @@
+# Secrets - THIS IS THE MOST IMPORTANT PART
+.env
+backend/api/.env
+
+# Python local files
+__pycache__/
+*.pyc
+backend/api/__pycache__/
+backend/api/uploads/
+backend/api/results/
+
+# Frontend local files
+Frontend/node_modules/
+Frontend/dist/
