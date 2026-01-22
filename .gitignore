@@ -12,3 +12,10 @@ backend/api/results/
 # Frontend local files
 Frontend/node_modules/
 Frontend/dist/
+
+node_modules
+dist
+__pycache__
+.env
+uploads
+results
