@@ -12,3 +12,4 @@ backend/api/results/
 # Frontend local files
 Frontend/node_modules/
 Frontend/dist/
+google-generativeai
