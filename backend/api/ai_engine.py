@@ -6,7 +6,7 @@ import random
 import time
 from datetime import datetime
 from dotenv import load_dotenv
-from google import genai
+import google.generativeai as genai
 from groq import Groq
 
 # ======================================================
