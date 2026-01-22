@@ -1,13 +1,18 @@
-# Only if Tesseract is NOT in your Windows PATH
-# pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-
 import fitz  # PyMuPDF
 import pytesseract
 import pandas as pd
+import mimetypes
+import os
 from pathlib import Path
 from PIL import Image
-import mimetypes
 
+# ======================================================
+# CONFIGURATION
+# ======================================================
+
+# On Railway/Linux, 'tesseract' is usually in the PATH automatically.
+# This line is only needed for local Windows development:
+# pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # ======================================================
 # FILE TYPE DETECTION
@@ -56,7 +61,7 @@ def extract_pdf_text(file_path: Path) -> str:
             for page in doc:
                 text += page.get_text()
     except Exception as e:
-        print("❌ PDF Extraction Error:", e)
+        print(f"❌ PDF Extraction Error: {e}")
 
     return text.strip()
 
@@ -68,14 +73,14 @@ def extract_pdf_text(file_path: Path) -> str:
 def extract_image_text(file_path: Path) -> str:
     """
     OCR extraction from image files using Tesseract.
-    Supports JPG / PNG / JPEG.
     """
     try:
         image = Image.open(file_path)
+        # We use lang='eng' for medical reports; add others if needed
         text = pytesseract.image_to_string(image)
         return text.strip()
     except Exception as e:
-        print("❌ Image OCR Error:", e)
+        print(f"❌ Image OCR Error: {e}")
         return ""
 
 
@@ -85,7 +90,7 @@ def extract_image_text(file_path: Path) -> str:
 
 def extract_csv_text(file_path: Path) -> str:
     """
-    Convert CSV rows into readable medical sentences.
+    Convert CSV rows into readable medical sentences for the AI.
     """
     try:
         df = pd.read_csv(file_path)
@@ -94,60 +99,16 @@ def extract_csv_text(file_path: Path) -> str:
             return ""
 
         lines = []
-
         for _, row in df.iterrows():
-            sentence_parts = []
-
-            for col, val in row.items():
-                sentence_parts.append(f"{col} is {val}")
-
-            sentence = ", ".join(sentence_parts)
-            lines.append(sentence)
+            sentence_parts = [f"{col} is {val}" for col, val in row.items() if pd.notna(val)]
+            if sentence_parts:
+                lines.append(", ".join(sentence_parts))
 
         return "\n".join(lines)
 
     except Exception as e:
-        print("❌ CSV Extraction Error:", e)
+        print(f"❌ CSV Extraction Error: {e}")
         return ""
-
-
-# ======================================================
-# UNIFIED EXTRACTION ROUTER
-# ======================================================
-
-def extract_text(file_path: Path) -> str:
-    """
-    Auto-detect file type and extract text accordingly.
-    """
-    file_type = detect_file_type(file_path)
-
-    print(f"📄 Detected file type: {file_type}")
-
-    if file_type == "pdf":
-        text = extract_pdf_text(file_path)
-
-        # If scanned PDF has no text → try OCR fallback
-        if not text:
-            print("⚠️ PDF has no text. Trying OCR fallback...")
-            try:
-                images = convert_pdf_to_images(file_path)
-                ocr_text = []
-                for img in images:
-                    ocr_text.append(pytesseract.image_to_string(img))
-                return "\n".join(ocr_text).strip()
-            except Exception as e:
-                print("❌ PDF OCR fallback failed:", e)
-                return ""
-
-        return text
-
-    if file_type == "image":
-        return extract_image_text(file_path)
-
-    if file_type == "csv":
-        return extract_csv_text(file_path)
-
-    raise ValueError("Unsupported file type")
 
 
 # ======================================================
@@ -156,17 +117,64 @@ def extract_text(file_path: Path) -> str:
 
 def convert_pdf_to_images(file_path: Path):
     """
-    Convert PDF pages into images for OCR.
+    Convert PDF pages into high-resolution images for OCR fallback.
+    Used when a PDF is a 'scanned' image rather than digital text.
     """
     images = []
     try:
         doc = fitz.open(file_path)
         for page in doc:
-            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+            # Increase resolution (zoom) for better OCR accuracy
+            zoom = 2  
+            mat = fitz.Matrix(zoom, zoom)
+            pix = page.get_pixmap(matrix=mat)
+            
             img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
             images.append(img)
         doc.close()
     except Exception as e:
-        print("❌ PDF Image Conversion Error:", e)
+        print(f"❌ PDF Image Conversion Error: {e}")
 
     return images
+
+
+# ======================================================
+# UNIFIED EXTRACTION ROUTER (The Main Function)
+# ======================================================
+
+def extract_text(file_path: Path) -> str:
+    """
+    Auto-detect file type and extract text accordingly.
+    Includes OCR fallback for scanned PDFs.
+    """
+    if not file_path.exists():
+        return ""
+
+    file_type = detect_file_type(file_path)
+    print(f"🔍 Extraction Engine: Processing {file_type} file...")
+
+    if file_type == "pdf":
+        text = extract_pdf_text(file_path)
+
+        # If the text is empty, the PDF is likely a scanned image.
+        if not text or len(text.strip()) < 20:
+            print("⚠️ Digital text not found. Starting OCR Fallback...")
+            try:
+                images = convert_pdf_to_images(file_path)
+                ocr_results = []
+                for img in images:
+                    ocr_results.append(pytesseract.image_to_string(img))
+                return "\n".join(ocr_results).strip()
+            except Exception as e:
+                print(f"❌ OCR Fallback failed: {e}")
+                return ""
+        return text
+
+    if file_type == "image":
+        return extract_image_text(file_path)
+
+    if file_type == "csv":
+        return extract_csv_text(file_path)
+
+    print(f"❌ Unsupported file type detected: {file_type}")
+    return ""
