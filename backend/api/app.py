@@ -3,29 +3,37 @@ import uuid
 import time
 from pathlib import Path
 from datetime import datetime, timezone
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
-# Internal Imports
+# Internal Modules
 from ai_engine import analyze_medical_text
-from extractors import extract_text 
+from extractors import extract_text
+
+
+# -----------------------------------
+# APP INITIALIZATION
+# -----------------------------------
 
 app = Flask(__name__)
 CORS(app)
 
-# Setup Directories
 BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_DIR = BASE_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
-# Configuration
-ALLOWED_EXTENSIONS = {'.pdf', '.png', '.jpg', '.jpeg', '.csv'}
-MAX_FILE_SIZE_MB = 10 * 1024 * 1024  # 10MB
+# -----------------------------------
+# CONFIGURATION
+# -----------------------------------
 
-# In-memory store (Note: This resets when Railway restarts)
-REPORT_HISTORY = []
+ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".csv"}
+MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
+
 MAX_HISTORY = 15
 
+# Session-scoped telemetry (resets on restart — acceptable for demo)
+REPORT_HISTORY = []
 SYSTEM_METRICS = {
     "total_files_processed": 0,
     "successful_scans": 0,
@@ -33,107 +41,107 @@ SYSTEM_METRICS = {
     "ocr_extractions": 0
 }
 
-# -------------------------------
+
+# -----------------------------------
 # HELPERS
-# -------------------------------
+# -----------------------------------
 
 def validate_file(file):
-    if not file.filename:
-        return False, "No filename provided."
-    
+    if not file or not file.filename:
+        return False, "No file provided."
+
     ext = Path(file.filename).suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
-        return False, f"Unsupported file type ({ext}). Upload PDF, Image, or CSV."
+        return False, f"Unsupported file type: {ext}"
 
-    # Check File Size
     file.seek(0, os.SEEK_END)
     size = file.tell()
     file.seek(0)
 
-    if size > MAX_FILE_SIZE_MB:
-        return False, "File too large. Maximum size allowed is 10MB."
+    if size > MAX_FILE_SIZE_BYTES:
+        return False, "File size exceeds 10MB limit."
 
     return True, None
+
 
 def calculate_trend(history):
     if len(history) < 2:
         return "stable"
-    # Compare health score of the latest report vs the one before it
+
     try:
-        current = history[-1].get("health_score", 0)
-        previous = history[-2].get("health_score", 0)
-        if current > previous: return "improving"
-        if current < previous: return "declining"
-    except (IndexError, KeyError):
+        current = history[-1]["health_score"]
+        previous = history[-2]["health_score"]
+        if current > previous:
+            return "improving"
+        if current < previous:
+            return "declining"
+    except Exception:
         pass
+
     return "stable"
 
-# -------------------------------
-# ROUTES
-# -------------------------------
 
-@app.route("/")
-def index():
+def safe_delete(path: Path):
+    try:
+        if path.exists():
+            path.unlink()
+    except Exception:
+        pass
+
+
+# -----------------------------------
+# ROUTES
+# -----------------------------------
+
+@app.route("/", methods=["GET"])
+def root():
     return jsonify({
-        "message": "MediQ AI Analysis API is Online",
-        "docs": "/health",
-        "status": "ready"
+        "service": "MediQ AI Analysis API",
+        "status": "online",
+        "version": "v5.1-stable"
     })
 
-@app.route("/health")
+
+@app.route("/health", methods=["GET"])
 def health():
     return jsonify({
         "status": "healthy",
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "version": "v5.1-stable",
         "supported_formats": list(ALLOWED_EXTENSIONS),
         "uptime": "active"
     })
 
+
 @app.route("/upload", methods=["POST"])
-def upload_file():
+def upload():
     start_time = time.time()
     session_id = f"SES-{uuid.uuid4().hex[:8].upper()}"
 
     if "file" not in request.files:
         SYSTEM_METRICS["failed_scans"] += 1
-        return jsonify({
-            "error": "No file detected in request",
-            "session_id": session_id
-        }), 400
+        return jsonify({"error": "No file received", "session_id": session_id}), 400
 
     file = request.files["file"]
 
-    # 1. Validation
-    is_valid, error_msg = validate_file(file)
+    is_valid, error = validate_file(file)
     if not is_valid:
         SYSTEM_METRICS["failed_scans"] += 1
-        return jsonify({
-            "error": error_msg,
-            "session_id": session_id
-        }), 400
+        return jsonify({"error": error, "session_id": session_id}), 400
 
-    # 2. Save File Securely
-    safe_filename = f"{uuid.uuid4().hex}_{file.filename}"
-    save_path = UPLOAD_DIR / safe_filename
-    file.save(save_path)
+    filename = f"{uuid.uuid4().hex}_{file.filename}"
+    filepath = UPLOAD_DIR / filename
+    file.save(filepath)
 
     try:
-        # 3. Smart Extraction
-        extracted_text = extract_text(save_path)
+        extracted_text = extract_text(filepath)
 
         if not extracted_text or len(extracted_text.strip()) < 10:
-            return jsonify({
-                "error": "Extraction failed. The document appears empty or unreadable.",
-                "session_id": session_id
-            }), 422
+            raise ValueError("Empty or unreadable document")
 
-        # 4. AI Analysis
         ai_result = analyze_medical_text(extracted_text)
 
-        # 5. Build Telemetry Metadata
         processing_time = round(time.time() - start_time, 2)
-        
+
         snapshot = {
             "report_id": f"REP-{uuid.uuid4().hex[:10].upper()}",
             "session_id": session_id,
@@ -145,7 +153,6 @@ def upload_file():
             "processing_time": processing_time
         }
 
-        # Update History and Metrics
         REPORT_HISTORY.append(snapshot)
         if len(REPORT_HISTORY) > MAX_HISTORY:
             REPORT_HISTORY.pop(0)
@@ -153,36 +160,41 @@ def upload_file():
         SYSTEM_METRICS["total_files_processed"] += 1
         SYSTEM_METRICS["successful_scans"] += 1
 
-        # Combine Result
-        ai_result["meta"] = snapshot
-        ai_result["history"] = REPORT_HISTORY
-        ai_result["trend"] = calculate_trend(REPORT_HISTORY)
-        ai_result["system_stats"] = SYSTEM_METRICS
-
-        # Cleanup: Remove file after processing to save Railway disk space
-        if save_path.exists():
-            os.remove(save_path)
+        ai_result.update({
+            "meta": snapshot,
+            "history": REPORT_HISTORY,
+            "trend": calculate_trend(REPORT_HISTORY),
+            "system_stats": SYSTEM_METRICS
+        })
 
         return jsonify(ai_result)
 
     except Exception as e:
         SYSTEM_METRICS["failed_scans"] += 1
-        print(f"🔥 SERVER ERROR: {str(e)}")
+        print(f"[ERROR] {str(e)}")
+
         return jsonify({
-            "error": "Internal Processing Engine Failure",
-            "details": str(e),
+            "error": "Internal processing failure",
             "session_id": session_id
         }), 500
 
+    finally:
+        safe_delete(filepath)
+
+
 @app.route("/history", methods=["GET"])
-def get_history():
+def history():
     return jsonify({
         "count": len(REPORT_HISTORY),
         "reports": REPORT_HISTORY,
         "metrics": SYSTEM_METRICS
     })
 
+
+# -----------------------------------
+# ENTRY POINT (Local only)
+# -----------------------------------
+
 if __name__ == "__main__":
-    # Use PORT from environment for Railway compatibility
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
