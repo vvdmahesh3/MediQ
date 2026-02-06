@@ -3,7 +3,8 @@
 # 🩺 MediQ — AI-Powered Medical Report Analyzer
 
 MediQ is a full-stack, AI-powered medical report analysis platform that converts unstructured medical documents (PDFs, scanned images, CSVs) into structured, meaningful, and actionable health insights.  
-It addresses a real-world problem in healthcare: **medical reports are often complex, inconsistent, and difficult for patients and even clinicians to quickly interpret.** MediQ bridges this gap by combining intelligent extraction, AI-driven analysis, and a premium user interface to make medical data more accessible, readable, and usable.
+It addresses a real-world problem in healthcare:  **medical reports are often complex, inconsistent, and difficult for patients and even clinicians to quickly interpret.** 
+MediQ bridges this gap by combining intelligent extraction, AI-driven analysis, and a premium user interface to make medical data more accessible, readable, and usable.
 Built during my **Infosys Virtual Internship**, this project demonstrates end-to-end system design, backend engineering, frontend UX, AI integration, and workflow optimization — with a strong focus on production-style architecture and recruiter-ready polish.
 
 ---
