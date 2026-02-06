@@ -6,7 +6,6 @@ MediQ is a full-stack, AI-powered medical report analysis platform that converts
 
 Built during the **Infosys Virtual Internship**, this project demonstrates end-to-end system design, backend engineering, frontend UX, AI integration, and workflow optimization.
 
----
 
 ## 🎯 Problem Statement
 
