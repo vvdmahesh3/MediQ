@@ -20,7 +20,6 @@ In real healthcare environments:
 
 👉 Making medical reports **machine-readable, human-friendly, and insight-driven**.
 
----
 
 ## 💡 Motivation & Inspiration
 
@@ -34,7 +33,6 @@ I built MediQ to:
 - Explore AI integration in real applications.
 - Design a complete, production-style system rather than a toy project.
 
----
 
 ## 🧑‍💻 My Contributions
 
@@ -70,7 +68,6 @@ I took ownership of the entire system design and implementation, including:
 ### PDF Report Generation
 - Enabled exportable professional summaries for offline sharing with a structured report layout.
 
----
 
 ## ✨ Key Features
 
@@ -99,7 +96,6 @@ I took ownership of the entire system design and implementation, including:
 - Performance-aware processing.
 - Telemetry & audit trail.
 
----
 
 ## 🧱 High-Level Architecture
 
@@ -154,7 +150,6 @@ Frontend (React + TypeScript)
 - Modular service design
 - Telemetry & logging
 
----
 
 ## ⚙️ Installation & Setup
 
@@ -181,7 +176,6 @@ npm run dev
 
 Runs at: `http://localhost:5173` (frontend development server)
 
----
 
 ## ▶️ Usage Guide
 
@@ -191,7 +185,6 @@ Runs at: `http://localhost:5173` (frontend development server)
 4. Dashboard displays parameters, health status, confidence scores, and explanations.
 5. Export results as PDF if needed.
 
----
 
 ## ⚠️ Deployment Note
 
@@ -199,7 +192,6 @@ The backend integrates AI models, OCR engines, and heavy processing libraries, w
 
 ➡️ Due to these constraints, the backend is demonstrated locally in this repo, while the frontend can be deployed independently. Production-ready deployment options include dedicated cloud instances, Docker/Kubernetes, or paid cloud services (AWS, Azure, GCP).
 
----
 
 ## 🔮 Future Roadmap
 
@@ -211,7 +203,6 @@ The backend integrates AI models, OCR engines, and heavy processing libraries, w
 - Mobile app version
 - Multi-language OCR support
 
----
 
 ## 🤝 Contributions & Acknowledgments
 
@@ -219,7 +210,6 @@ Designed and developed by Mahesh during the Infosys Virtual Internship.
 Thanks to teammates (e.g., Mohit) and mentor [Saritha](https://github.com/Saritha-batch1) for feedback.
 Open-source libraries for PDF, OCR, and UI frameworks made this project possible.
 
----
 
 ## 📬 Contact
 
@@ -228,6 +218,5 @@ Open-source libraries for PDF, OCR, and UI frameworks made this project possible
 - LinkedIn: https://www.linkedin.com/in/vvdmahesh362006/
 - Email: immahesh300@gmail.com
 
----
 
 If you found this project useful, please star the repo, fork it, or share feedback.
