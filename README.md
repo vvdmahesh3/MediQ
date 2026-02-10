@@ -205,7 +205,7 @@ The backend integrates AI models, OCR engines, and heavy processing libraries, w
 ## 🤝 Contributions & Acknowledgments
 
 Designed and developed by Mahesh during the Infosys Virtual Internship.
-Thanks to teammates (e.g., Mohit) and mentor [Saritha](https://github.com/Saritha-batch1) for feedback.
+Thanks to teammate [Mohit](https://github.com/mohitkumar9818) and mentor [Saritha](https://github.com/Saritha-batch1) for feedback.
 Open-source libraries for PDF, OCR, and UI frameworks made this project possible.
 
 
