@@ -3,16 +3,37 @@ import pytesseract
 import pandas as pd
 import mimetypes
 import os
+import platform
 from pathlib import Path
 from PIL import Image
 
 # ======================================================
-# CONFIGURATION
+# CONFIGURATION — Auto-detect Tesseract on Windows
 # ======================================================
 
-# On Railway/Linux, 'tesseract' is usually in the PATH automatically.
-# This line is only needed for local Windows development:
-# pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+if platform.system() == "Windows":
+    # Common install paths for Tesseract on Windows
+    _tesseract_candidates = [
+        r"M:\mahesh\Intenships\Infosys Internship\Tesseract-OCR\tesseract.exe",  # ✅ project-local install
+        r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+        r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+        r"C:\Users\{}\AppData\Local\Tesseract-OCR\tesseract.exe".format(os.environ.get("USERNAME", "")),
+    ]
+    _found = False
+    for _path in _tesseract_candidates:
+        if Path(_path).exists():
+            pytesseract.pytesseract.tesseract_cmd = _path
+            print(f"✅ Tesseract found at: {_path}")
+            _found = True
+            break
+    if not _found:
+        print("⚠️  Tesseract not found in common paths. Image OCR will fail.")
+        print("    Download from: https://github.com/UB-Mannheim/tesseract/wiki")
+    # Check availability by exe existence only — avoids blocking subprocess call at startup
+    TESSERACT_AVAILABLE = _found
+else:
+    # On Linux/Mac, tesseract should be in PATH
+    TESSERACT_AVAILABLE = bool(os.environ.get("TESSERACT_AVAILABLE", "1") != "0")
 
 # ======================================================
 # FILE TYPE DETECTION
@@ -73,15 +94,26 @@ def extract_pdf_text(file_path: Path) -> str:
 def extract_image_text(file_path: Path) -> str:
     """
     OCR extraction from image files using Tesseract.
+    Falls back with a clear error if Tesseract is not installed.
     """
+    if not TESSERACT_AVAILABLE:
+        raise RuntimeError(
+            "Tesseract OCR is not installed on this machine. "
+            "Please install it from https://github.com/UB-Mannheim/tesseract/wiki "
+            "to process image files. For now, please upload a PDF or CSV instead."
+        )
     try:
         image = Image.open(file_path)
-        # We use lang='eng' for medical reports; add others if needed
-        text = pytesseract.image_to_string(image)
+        # Use lang='eng' for medical reports
+        text = pytesseract.image_to_string(image, config="--psm 6")
+        if not text.strip():
+            raise ValueError("OCR returned empty text. The image may be too dark, blurry, or not a medical report.")
         return text.strip()
+    except RuntimeError:
+        raise  # Re-raise our custom error
     except Exception as e:
         print(f"❌ Image OCR Error: {e}")
-        return ""
+        raise RuntimeError(f"Could not read text from image: {e}")
 
 
 # ======================================================
@@ -159,15 +191,28 @@ def extract_text(file_path: Path) -> str:
         # If the text is empty, the PDF is likely a scanned image.
         if not text or len(text.strip()) < 20:
             print("⚠️ Digital text not found. Starting OCR Fallback...")
+            if not TESSERACT_AVAILABLE:
+                raise RuntimeError(
+                    "This PDF appears to be a scanned image, but Tesseract OCR is not installed. "
+                    "Please install Tesseract from https://github.com/UB-Mannheim/tesseract/wiki, "
+                    "or upload a digital (text-based) PDF instead."
+                )
             try:
                 images = convert_pdf_to_images(file_path)
                 ocr_results = []
                 for img in images:
-                    ocr_results.append(pytesseract.image_to_string(img))
-                return "\n".join(ocr_results).strip()
+                    result = pytesseract.image_to_string(img, config="--psm 6")
+                    if result.strip():
+                        ocr_results.append(result)
+                combined = "\n".join(ocr_results).strip()
+                if not combined:
+                    raise ValueError("OCR fallback returned empty text from scanned PDF.")
+                return combined
+            except RuntimeError:
+                raise
             except Exception as e:
                 print(f"❌ OCR Fallback failed: {e}")
-                return ""
+                raise RuntimeError(f"Failed to extract text from scanned PDF: {e}")
         return text
 
     if file_type == "image":

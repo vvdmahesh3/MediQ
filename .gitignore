@@ -1,6 +1,7 @@
 # Secrets - THIS IS THE MOST IMPORTANT PART
 .env
-backend/api/.env
+backend/.env
+Frontend/.env
 
 # Python local files
 __pycache__/

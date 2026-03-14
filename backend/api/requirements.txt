@@ -5,3 +5,10 @@ pillow
 pytesseract
 opencv-python-headless
 requests
+PyMuPDF
+pandas
+python-dotenv
+google-genai
+groq
+PyJWT
+werkzeug

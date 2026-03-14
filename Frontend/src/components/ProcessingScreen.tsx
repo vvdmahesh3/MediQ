@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   FileSearch,
   ScanLine,
@@ -14,6 +14,7 @@ import {
   Cpu,
   WifiOff,
 } from "lucide-react";
+import { checkHealth } from "../lib/api";
 
 interface ProcessingScreenProps {
   onComplete: () => void;
@@ -28,22 +29,15 @@ interface Step {
   status: "pending" | "processing" | "complete";
 }
 
-const API_BASE = "http://127.0.0.1:5000";
-
 export default function ProcessingScreen({
   onComplete,
   isDarkMode,
 }: ProcessingScreenProps) {
   const timerRef = useRef<number | null>(null);
-  const currentStepRef = useRef(0); // ✅ FIX
+  const currentStepRef = useRef(0);
 
-  const [backendStatus, setBackendStatus] = useState<
-    "online" | "offline"
-  >("offline");
-
-  const [aiEngine, setAiEngine] = useState<
-    "Gemini" | "Groq" | "Local"
-  >("Gemini");
+  const [backendStatus, setBackendStatus] = useState<"online" | "offline">("offline");
+  const [aiEngine, setAiEngine] = useState<"Gemini" | "Groq" | "Local">("Gemini");
 
   const [steps, setSteps] = useState<Step[]>([
     {
@@ -70,14 +64,14 @@ export default function ProcessingScreen({
     {
       id: 4,
       title: "Contextual AI",
-      description: "Risk inference & logic modeling",
+      description: "Risk inference, health plan & doctor's perspective",
       icon: <Brain className="w-5 h-5" />,
       status: "pending",
     },
     {
       id: 5,
       title: "Finalizing Report",
-      description: "Generating secure dashboard payload",
+      description: "Generating dashboard, health plan & risk analysis",
       icon: <FileCheck className="w-5 h-5" />,
       status: "pending",
     },
@@ -87,60 +81,42 @@ export default function ProcessingScreen({
     "Initializing neural core...",
   ]);
 
-  const [statusText, setStatusText] = useState(
-    "Booting Intelligence Engine"
-  );
+  const [statusText, setStatusText] = useState("Booting Intelligence Engine");
 
-  // ----------------------------------------------------
-  // 🔌 Backend Health Monitor
-  // ----------------------------------------------------
+  // Backend Health Monitor
   useEffect(() => {
-    const checkHealth = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/health`);
-        setBackendStatus(res.ok ? "online" : "offline");
-      } catch {
-        setBackendStatus("offline");
-      }
+    const doCheck = async () => {
+      const healthy = await checkHealth();
+      setBackendStatus(healthy ? "online" : "offline");
     };
 
-    checkHealth();
-    const timer = setInterval(checkHealth, 4000);
+    doCheck();
+    const timer = setInterval(doCheck, 4000);
     return () => clearInterval(timer);
   }, []);
 
-  // ----------------------------------------------------
-  // 🧠 Simulated AI Engine Switching
-  // ----------------------------------------------------
+  // AI Engine Switching
   useEffect(() => {
     const engines: ("Gemini" | "Groq" | "Local")[] = [
-      "Gemini",
-      "Gemini",
-      "Groq",
-      "Gemini",
-      "Local",
+      "Gemini", "Gemini", "Groq", "Gemini", "Local",
     ];
-
     let index = 0;
     const t = setInterval(() => {
       setAiEngine(engines[index % engines.length]);
       index++;
     }, 4500);
-
     return () => clearInterval(t);
   }, []);
 
-  // ----------------------------------------------------
-  // ⚙️ Processing Pipeline Animation (FIXED)
-  // ----------------------------------------------------
+  // Processing Pipeline Animation
   useEffect(() => {
     const detailLogs = [
       "Parsing hematology tables...",
       "Normalizing OCR confidence...",
       "Detecting abnormal biomarkers...",
-      "Running clinical risk heuristics...",
-      "Encrypting medical payload...",
-      "Optimizing dashboard rendering...",
+      "Generating 10-day health plan...",
+      "Building doctor's perspective...",
+      "Encrypting & finalizing payload...",
     ];
 
     const runPipeline = () => {
@@ -156,12 +132,10 @@ export default function ProcessingScreen({
         timerRef.current = window.setTimeout(() => {
           onComplete();
         }, 1500);
-
         return;
       }
 
       const activeStep = steps[stepIndex];
-
       setStatusText(activeStep.title);
 
       setLogs((prev) => [
@@ -171,16 +145,13 @@ export default function ProcessingScreen({
 
       setSteps((prev) =>
         prev.map((s, idx) => {
-          if (idx === stepIndex)
-            return { ...s, status: "complete" };
-          if (idx === stepIndex + 1)
-            return { ...s, status: "processing" };
+          if (idx === stepIndex) return { ...s, status: "complete" };
+          if (idx === stepIndex + 1) return { ...s, status: "processing" };
           return s;
         })
       );
 
       currentStepRef.current += 1;
-
       timerRef.current = window.setTimeout(runPipeline, 1800);
     };
 
@@ -189,40 +160,28 @@ export default function ProcessingScreen({
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [onComplete]); // ✅ FIX: removed steps dependency
+  }, [onComplete]);
 
-  const completedSteps = steps.filter(
-    (s) => s.status === "complete"
-  ).length;
-
+  const completedSteps = steps.filter((s) => s.status === "complete").length;
   const progress = (completedSteps / steps.length) * 100;
 
-  // ----------------------------------------------------
-  // 🎨 UI Helpers
-  // ----------------------------------------------------
   const engineColor =
-    aiEngine === "Gemini"
-      ? "text-indigo-400"
-      : aiEngine === "Groq"
-      ? "text-emerald-400"
-      : "text-amber-400";
+    aiEngine === "Gemini" ? "text-indigo-400"
+    : aiEngine === "Groq" ? "text-emerald-400"
+    : "text-amber-400";
 
   const engineIcon =
-    aiEngine === "Gemini" ? (
-      <Sparkles className="w-4 h-4" />
-    ) : aiEngine === "Groq" ? (
-      <Cpu className="w-4 h-4" />
-    ) : (
-      <Server className="w-4 h-4" />
-    );
+    aiEngine === "Gemini" ? <Sparkles className="w-4 h-4" />
+    : aiEngine === "Groq" ? <Cpu className="w-4 h-4" />
+    : <Server className="w-4 h-4" />;
 
   return (
     <div
       className={`min-h-screen flex flex-col items-center justify-center p-6 transition-colors ${
-        isDarkMode ? "bg-[#0F172A] text-white" : "bg-[#F8FAFC] text-slate-900"
+        isDarkMode ? "bg-[#0B0F1A] text-white" : "bg-[#F8FAFC] text-slate-900"
       }`}
     >
-      {/* BACKGROUND DECOR */}
+      {/* BACKGROUND */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] animate-pulse delay-700" />
@@ -230,7 +189,7 @@ export default function ProcessingScreen({
 
       <div className="max-w-xl w-full relative z-10">
         {/* HEADER */}
-        <div className="text-center mb-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+        <div className="text-center mb-10 animate-fade-in-up">
           <div className="relative w-24 h-24 mx-auto mb-6">
             <div className="absolute inset-0 bg-blue-600/20 rounded-full animate-ping" />
             <div className="relative w-24 h-24 bg-gradient-to-tr from-blue-600 to-indigo-700 rounded-full flex items-center justify-center shadow-2xl shadow-blue-500/30 overflow-hidden">
@@ -244,34 +203,15 @@ export default function ProcessingScreen({
           </h1>
 
           <div className="flex flex-wrap items-center justify-center gap-4 text-[10px] font-black uppercase tracking-[0.3em]">
-            {/* Backend */}
-            <div
-              className={`flex items-center gap-1 ${
-                backendStatus === "online"
-                  ? "text-emerald-400"
-                  : "text-rose-400"
-              }`}
-            >
-              {backendStatus === "online" ? (
-                <Server className="w-3 h-3" />
-              ) : (
-                <WifiOff className="w-3 h-3" />
-              )}
+            <div className={`flex items-center gap-1 ${backendStatus === "online" ? "text-emerald-400" : "text-rose-400"}`}>
+              {backendStatus === "online" ? <Server className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
               Backend {backendStatus}
             </div>
-
-            {/* AI Engine */}
             <div className={`flex items-center gap-1 ${engineColor}`}>
               {engineIcon}
               {aiEngine} Engine
             </div>
-
-            {/* Pipeline */}
-            <div
-              className={`flex items-center gap-1 ${
-                isDarkMode ? "text-slate-400" : "text-slate-500"
-              }`}
-            >
+            <div className={`flex items-center gap-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
               <Loader2 className="w-3 h-3 animate-spin" />
               Neural Pipeline Active
             </div>
@@ -296,22 +236,15 @@ export default function ProcessingScreen({
           >
             <div className="flex items-center gap-2 text-slate-500 mb-3 border-b border-slate-700 pb-2">
               <Terminal className="w-3 h-3" />
-              <span className="uppercase tracking-widest text-[9px] font-black">
-                AI System Logs
-              </span>
+              <span className="uppercase tracking-widest text-[9px] font-black">AI System Logs</span>
             </div>
-
             <div className="space-y-1.5 min-h-[70px]">
               {logs.map((log, idx) => (
                 <div
                   key={idx}
-                  className={`${
-                    idx === 0 ? "text-blue-400" : "text-slate-400"
-                  } flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300`}
+                  className={`${idx === 0 ? "text-blue-400" : "text-slate-400"} flex items-center gap-2 animate-fade-in`}
                 >
-                  <span className="opacity-40">
-                    [{new Date().toLocaleTimeString()}]
-                  </span>
+                  <span className="opacity-40">[{new Date().toLocaleTimeString()}]</span>
                   <span className="font-medium">{log}</span>
                 </div>
               ))}
@@ -321,21 +254,10 @@ export default function ProcessingScreen({
           {/* PROGRESS BAR */}
           <div className="mb-12">
             <div className="flex items-center justify-between mb-4 px-1">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                Pipeline Saturation
-              </span>
-              <span className="text-xl font-black text-blue-500 tracking-tighter">
-                {Math.round(progress)}%
-              </span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Pipeline Saturation</span>
+              <span className="text-xl font-black text-blue-500 tracking-tighter">{Math.round(progress)}%</span>
             </div>
-
-            <div
-              className={`h-4 rounded-full overflow-hidden p-1 shadow-inner ring-1 ${
-                isDarkMode
-                  ? "bg-slate-800 ring-slate-700"
-                  : "bg-slate-100 ring-slate-200"
-              }`}
-            >
+            <div className={`h-4 rounded-full overflow-hidden p-1 shadow-inner ring-1 ${isDarkMode ? "bg-slate-800 ring-slate-700" : "bg-slate-100 ring-slate-200"}`}>
               <div
                 className="h-full bg-gradient-to-r from-blue-600 via-indigo-500 to-emerald-500 rounded-full transition-all duration-1000 ease-out shadow-lg"
                 style={{ width: `${progress}%` }}
@@ -375,14 +297,9 @@ export default function ProcessingScreen({
                     step.icon
                   )}
                 </div>
-
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-xs font-black uppercase tracking-widest">
-                    {step.title}
-                  </h3>
-                  <p className="text-[11px] text-slate-400 font-medium truncate">
-                    {step.description}
-                  </p>
+                  <h3 className="text-xs font-black uppercase tracking-widest">{step.title}</h3>
+                  <p className="text-[11px] text-slate-400 font-medium truncate">{step.description}</p>
                 </div>
               </div>
             ))}
@@ -393,11 +310,11 @@ export default function ProcessingScreen({
         <div className="flex items-center justify-center gap-6 px-4">
           <div className="flex items-center gap-2 text-[9px] font-black text-slate-400 uppercase tracking-widest">
             <ShieldAlert className="w-3 h-3 text-emerald-400" />
-            256-Bit Encrypted Analysis
+            256-Bit Encrypted
           </div>
           <div className="h-1 w-1 bg-slate-500 rounded-full" />
           <div className="flex items-center gap-2 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-            Medical Grade Precision
+            AI-Generated • Not Medical Advice
           </div>
         </div>
       </div>

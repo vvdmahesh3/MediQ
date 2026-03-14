@@ -1,3 +1,35 @@
+
+# What MediQ Does
+MediQ is a full-stack AI-powered medical report analysis platform that:
+  1.  Accepts medical documents in multiple formats (PDF, images, CSV) 
+  2.  Extracts text using smart routing — PyMuPDF for digital PDFs, Tesseract OCR for images/scanned PDFs, Pandas for CSVs
+  3.  Analyzes the extracted text using Gemini 2.0 Flash (primary) with Groq/LLaMA as a fallback
+  4.  Displays results in a beautiful interactive dashboard with biomarker analysis, risk scoring, health scores, trend tracking, and PDF export
+
+# Architecture
+-- Layer			Technology	                   Details
+-- Frontend			React + TypeScript + Tailwind + Vite	5screens: Landing → Upload → Processing → Results → History
+-- Backend			Python + Flask + Flask-CORS	RESTful API with /, /health, /upload, /history endpoints
+-- AI Engine			Gemini 2.0 Flash + Groq Fallback	Structured JSON prompt → JSON response → normalization + risk scoring
+-- Extraction			PyMuPDF + Tesseract OCR + Pandas	Smart router that auto-detects file type and chooses extractor
+
+# Backend Flow
+-- File Upload → Validation → Smart Extractor Router → AI Analysis → 
+-- Normalize → Risk Score → Cache → Return JSON with telemetry
+
+# Current Features ✅
+1. Multi-format file ingestion (PDF, Image, CSV)
+2. OCR fallback for scanned PDFs
+3. Dual AI engine with automatic failover
+4. In-memory caching (SHA-256 hash)
+5. Risk scoring with health score calculation
+6. Session-scoped telemetry & history (up to 15 reports)
+7. Dark/light theme support
+8. Backend health monitoring
+9. Processing pipeline animation
+10. PDF export via window.print()
+11. Drag & drop upload
+
 # 🩺 MediQ — AI-Powered Medical Report Analyzer
 
 MediQ is a full-stack, AI-powered medical report analysis platform that converts unstructured medical documents (PDFs, scanned images, CSVs) into structured, meaningful, and actionable health insights. It addresses a real-world problem in healthcare: **medical reports are often complex, inconsistent, and difficult for patients and even clinicians to quickly interpret.** MediQ bridges this gap by combining intelligent extraction, AI-driven analysis, and a clean user interface to make medical data more accessible and usable.
