@@ -3,7 +3,7 @@
  * Centralized API calls with JWT auth header injection.
  */
 
-const API_BASE = import.meta.env.VITE_API_URL as string || "http://127.0.0.1:5000";
+const API_BASE = import.meta.env.VITE_API_URL as string || "http://127.0.0.1:5001";
 
 // ==========================================
 // TOKEN MANAGEMENT
